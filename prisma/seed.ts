@@ -12,11 +12,11 @@ async function main() {
   // Usuario administrador
   const adminPassword = await bcrypt.hash("admin123", 10)
   const admin = await prisma.usuario.upsert({
-    where: { email: "admin@montblanc.cl" },
+    where: { email: "admin@montblancchile.com" },
     update: {},
     create: {
       nombre: "Administrador",
-      email: "admin@montblanc.cl",
+      email: "admin@montblancchile.com",
       password: adminPassword,
       rol: "ADMIN",
     },
@@ -27,19 +27,19 @@ async function main() {
   const evalPass = await bcrypt.hash("eval123", 10)
   const evaluadores = await Promise.all([
     prisma.usuario.upsert({
-      where: { email: "carolina.reyes@montblanc.cl" },
+      where: { email: "carolina.reyes@montblancchile.com" },
       update: {},
-      create: { nombre: "Carolina Reyes", email: "carolina.reyes@montblanc.cl", password: evalPass, rol: "EVALUADOR" },
+      create: { nombre: "Carolina Reyes", email: "carolina.reyes@montblancchile.com", password: evalPass, rol: "EVALUADOR" },
     }),
     prisma.usuario.upsert({
-      where: { email: "rodrigo.morales@montblanc.cl" },
+      where: { email: "rodrigo.morales@montblancchile.com" },
       update: {},
-      create: { nombre: "Rodrigo Morales", email: "rodrigo.morales@montblanc.cl", password: evalPass, rol: "EVALUADOR" },
+      create: { nombre: "Rodrigo Morales", email: "rodrigo.morales@montblancchile.com", password: evalPass, rol: "EVALUADOR" },
     }),
     prisma.usuario.upsert({
-      where: { email: "valentina.soto@montblanc.cl" },
+      where: { email: "valentina.soto@montblancchile.com" },
       update: {},
-      create: { nombre: "Valentina Soto", email: "valentina.soto@montblanc.cl", password: evalPass, rol: "EVALUADOR" },
+      create: { nombre: "Valentina Soto", email: "valentina.soto@montblancchile.com", password: evalPass, rol: "EVALUADOR" },
     }),
   ])
   console.log("✅ Evaluadores creados:", evaluadores.map((e) => e.nombre).join(", "))
@@ -66,10 +66,10 @@ async function main() {
 
   console.log("\n🎉 Seed completado exitosamente!")
   console.log("\n📋 Credenciales de acceso:")
-  console.log("   Admin:     admin@montblanc.cl / admin123")
-  console.log("   Evaluador: carolina.reyes@montblanc.cl / eval123")
-  console.log("   Evaluador: rodrigo.morales@montblanc.cl / eval123")
-  console.log("   Evaluador: valentina.soto@montblanc.cl / eval123")
+  console.log("   Admin:     admin@montblancchile.com / admin123")
+  console.log("   Evaluador: carolina.reyes@montblancchile.com / eval123")
+  console.log("   Evaluador: rodrigo.morales@montblancchile.com / eval123")
+  console.log("   Evaluador: valentina.soto@montblancchile.com / eval123")
 }
 
 main()
