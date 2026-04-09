@@ -1,0 +1,113 @@
+// Sistema de Evaluación de Candidatos — Montblanc Consulting
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Rol {
+  ADMIN
+  EVALUADOR
+}
+
+enum EstadoProceso {
+  EN_PROGRESO
+  COMPLETADO
+  TERMINADO
+}
+
+enum EstadoEtapa {
+  PENDIENTE
+  ACTIVA
+  COMPLETADA
+}
+
+enum Decision {
+  AVANZA
+  TERMINA
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nombre    String
+  email     String   @unique
+  password  String
+  rol       Rol      @default(EVALUADOR)
+  creadoEn  DateTime @default(now())
+
+  etapas EtapaEvaluacion[]
+}
+
+model Candidato {
+  id        String    @id @default(cuid())
+  nombre    String
+  email     String
+  telefono  String?
+  cargo     String?
+  linkedin  String?
+  notas     String?
+  creadoEn  DateTime  @default(now())
+
+  archivos Archivo[]
+  procesos ProcesoEvaluacion[]
+}
+
+model Archivo {
+  id          String    @id @default(cuid())
+  candidatoId String
+  candidato   Candidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+  nombre      String
+  ruta        String
+  tipo        String
+  tamano      Int
+  subidoEn    DateTime  @default(now())
+}
+
+model ProcesoEvaluacion {
+  id            String        @id @default(cuid())
+  candidatoId   String
+  candidato     Candidato     @relation(fields: [candidatoId], references: [id])
+  titulo        String
+  estado        EstadoProceso @default(EN_PROGRESO)
+  creadoEn      DateTime      @default(now())
+  actualizadoEn DateTime      @updatedAt
+
+  etapas EtapaEvaluacion[]
+}
+
+model EtapaEvaluacion {
+  id                String      @id @default(cuid())
+  procesoId         String
+  proceso           ProcesoEvaluacion @relation(fields: [procesoId], references: [id], onDelete: Cascade)
+  evaluadorId       String
+  evaluador         Usuario     @relation(fields: [evaluadorId], references: [id])
+  orden             Int
+  estado            EstadoEtapa @default(PENDIENTE)
+  decision          Decision?
+  comentarioGeneral String?
+  completadoEn      DateTime?
+
+  competencias EtapaCompetencia[]
+}
+
+model Competencia {
+  id          String  @id @default(cuid())
+  nombre      String
+  descripcion String?
+
+  etapas EtapaCompetencia[]
+}
+
+model EtapaCompetencia {
+  id            String          @id @default(cuid())
+  etapaId       String
+  etapa         EtapaEvaluacion @relation(fields: [etapaId], references: [id], onDelete: Cascade)
+  competenciaId String
+  competencia   Competencia     @relation(fields: [competenciaId], references: [id])
+  puntaje       Int?
+  comentario    String?
+}

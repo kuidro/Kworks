@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-navy: #1e3a5f;
+  --color-navy-dark: #152d4a;
+  --color-navy-light: #2a5080;
+  --color-gold: #c9a84c;
+  --color-gold-dark: #a8893c;
+  --color-gold-light: #d9be7a;
+}
+
+:root {
+  --background: #f8f9fa;
+  --foreground: #1a1a2e;
+  --navy: #1e3a5f;
+  --navy-dark: #152d4a;
+  --gold: #c9a84c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e3a5f;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #c9a84c;
+}
+
+/* Focus visible */
+*:focus-visible {
+  outline: 2px solid #c9a84c;
+  outline-offset: 2px;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Estilo de tablas */
+.table-montblanc {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-montblanc th {
+  background-color: #1e3a5f;
+  color: white;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.table-montblanc td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  color: #374151;
+}
+
+.table-montblanc tr:hover td {
+  background-color: #f0f5ff;
+}
+
+/* Botones */
+.btn-primary {
+  background-color: #1e3a5f;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #152d4a;
+}
+
+.btn-gold {
+  background-color: #c9a84c;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-gold:hover {
+  background-color: #a8893c;
+}
+
+/* Cards */
+.card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  padding: 24px;
+}
+
+/* Inputs */
+.input-field {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #111827;
+  background: white;
+  transition: border-color 0.15s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(30,58,95,0.1);
+}
+
+/* Badge estados */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.badge-pendiente {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.badge-activa {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-completada {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-terminada {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-en-progreso {
+  background-color: #fef3c7;
+  color: #92400e;
+}
