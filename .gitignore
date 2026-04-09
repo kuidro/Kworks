@@ -45,6 +45,3 @@ next-env.d.ts
 # uploads (user files)
 /uploads/*
 !/uploads/.gitkeep
-
-# prisma config
-prisma.config.ts
