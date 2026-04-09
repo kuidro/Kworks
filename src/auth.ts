@@ -22,6 +22,7 @@ declare module "next-auth" {
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "montblanc-consulting-secret-fallback",
   session: {
     strategy: "jwt",
   },
