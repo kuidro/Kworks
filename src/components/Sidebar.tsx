@@ -39,8 +39,8 @@ export default function Sidebar() {
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icono: iconos.dashboard, adminOnly: false },
-    { href: "/candidatos", label: "Candidatos", icono: iconos.candidatos, adminOnly: true },
     { href: "/procesos", label: "Procesos", icono: iconos.procesos, adminOnly: true },
+    { href: "/admin/tipos-proceso", label: "Tipos de Proceso", icono: iconos.competencias, adminOnly: true },
     { href: "/admin/competencias", label: "Competencias", icono: iconos.competencias, adminOnly: true },
     { href: "/admin/usuarios", label: "Usuarios", icono: iconos.usuarios, adminOnly: true },
   ]

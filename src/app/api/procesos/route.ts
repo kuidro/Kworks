@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
-import { activarEtapa } from "@/lib/automations"
-import { z } from "zod"
-
-const etapaSchema = z.object({
-  evaluadorId: z.string().min(1),
-  orden: z.number().int().positive(),
-  competenciaIds: z.array(z.string()).min(1, "Debe seleccionar al menos una competencia"),
-})
-
-const procesoSchema = z.object({
-  candidatoId: z.string().min(1, "Debe seleccionar un candidato"),
-  titulo: z.string().min(3, "El título debe tener al menos 3 caracteres"),
-  etapas: z.array(etapaSchema).min(1, "Debe agregar al menos una etapa"),
-})
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -23,16 +9,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const estado = searchParams.get("estado")
 
-  const procesos = await prisma.procesoEvaluacion.findMany({
-    where: estado ? { estado: estado as "EN_PROGRESO" | "COMPLETADO" | "TERMINADO" } : undefined,
+  const procesos = await prisma.proceso.findMany({
+    where: estado ? { estado: estado as "BORRADOR" | "ABIERTO" | "EN_PROGRESO" | "CERRADO" } : undefined,
     include: {
-      candidato: {
-        select: { id: true, nombre: true, email: true, cargo: true },
-      },
-      etapas: {
-        orderBy: { orden: "asc" },
-        include: {
-          evaluador: { select: { id: true, nombre: true } },
+      tipoProceso: { select: { id: true, nombre: true } },
+      _count: {
+        select: {
+          postulaciones: true,
+          candidatos: true,
         },
       },
     },
@@ -50,53 +34,34 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const parsed = procesoSchema.safeParse(body)
+    const { nombre, tipoProcesoId, descripcion, fechaInicio, fechaFin, estado } = body
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Datos inválidos", detalles: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      )
+    if (!nombre || typeof nombre !== "string" || nombre.trim().length < 3) {
+      return NextResponse.json({ error: "Nombre requerido (mínimo 3 caracteres)" }, { status: 400 })
     }
 
-    const { candidatoId, titulo, etapas } = parsed.data
-
-    // Verificar candidato
-    const candidato = await prisma.candidato.findUnique({ where: { id: candidatoId } })
-    if (!candidato) {
-      return NextResponse.json({ error: "Candidato no encontrado" }, { status: 404 })
+    if (!tipoProcesoId) {
+      return NextResponse.json({ error: "Tipo de proceso requerido" }, { status: 400 })
     }
 
-    // Crear proceso con etapas
-    const proceso = await prisma.procesoEvaluacion.create({
+    const tipoProceso = await prisma.tipoProceso.findUnique({ where: { id: tipoProcesoId } })
+    if (!tipoProceso) {
+      return NextResponse.json({ error: "Tipo de proceso no encontrado" }, { status: 404 })
+    }
+
+    const proceso = await prisma.proceso.create({
       data: {
-        candidatoId,
-        titulo,
-        etapas: {
-          create: etapas.map((etapa) => ({
-            evaluadorId: etapa.evaluadorId,
-            orden: etapa.orden,
-            estado: "PENDIENTE",
-            competencias: {
-              create: etapa.competenciaIds.map((competenciaId) => ({
-                competenciaId,
-              })),
-            },
-          })),
-        },
+        nombre: nombre.trim(),
+        tipoProcesoId,
+        descripcion: descripcion?.trim() || null,
+        fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
+        fechaFin: fechaFin ? new Date(fechaFin) : null,
+        estado: estado || "BORRADOR",
       },
       include: {
-        etapas: {
-          orderBy: { orden: "asc" },
-        },
+        tipoProceso: { select: { id: true, nombre: true } },
       },
     })
-
-    // Activar la primera etapa
-    const primeraEtapa = proceso.etapas.find((e) => e.orden === 1)
-    if (primeraEtapa) {
-      await activarEtapa(primeraEtapa.id)
-    }
 
     return NextResponse.json(proceso, { status: 201 })
   } catch (error) {

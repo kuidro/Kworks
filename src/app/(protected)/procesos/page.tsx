@@ -8,28 +8,26 @@ export default async function ProcesosPage() {
   const session = await auth()
   if (!session || session.user.rol !== "ADMIN") redirect("/dashboard")
 
-  const procesos = await prisma.procesoEvaluacion.findMany({
+  const procesos = await prisma.proceso.findMany({
     include: {
-      candidato: true,
-      etapas: {
-        include: { evaluador: true },
-        orderBy: { orden: "asc" },
-      },
+      tipoProceso: { select: { nombre: true } },
+      _count: { select: { postulaciones: true, candidatos: true } },
     },
     orderBy: { creadoEn: "desc" },
   })
 
-  const estadoConfig = {
+  const estadoConfig: Record<string, { label: string; clase: string }> = {
+    BORRADOR: { label: "Borrador", clase: "bg-gray-100 text-gray-600" },
+    ABIERTO: { label: "Abierto", clase: "bg-blue-100 text-blue-700" },
     EN_PROGRESO: { label: "En Progreso", clase: "bg-yellow-100 text-yellow-700" },
-    COMPLETADO: { label: "Completado", clase: "bg-green-100 text-green-700" },
-    TERMINADO: { label: "Terminado", clase: "bg-red-100 text-red-700" },
+    CERRADO: { label: "Cerrado", clase: "bg-green-100 text-green-700" },
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Procesos de Evaluación</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Procesos de Selección</h1>
           <p className="text-gray-500 text-sm mt-1">{procesos.length} proceso{procesos.length !== 1 ? "s" : ""} en total</p>
         </div>
         <Link
@@ -53,9 +51,10 @@ export default async function ProcesosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Candidato</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Proceso</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Etapas</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Postulaciones</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Candidatos</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
                 <th className="px-6 py-3"></th>
@@ -63,38 +62,21 @@ export default async function ProcesosPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {procesos.map((proceso) => {
-                const config = estadoConfig[proceso.estado]
-                const etapaActiva = proceso.etapas.find((e) => e.estado === "ACTIVA")
+                const conf = estadoConfig[proceso.estado]
                 return (
                   <tr key={proceso.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{proceso.candidato.nombre}</p>
-                      <p className="text-xs text-gray-400">{proceso.candidato.cargo || "Sin cargo"}</p>
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">{proceso.titulo}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1">
-                        {proceso.etapas.map((etapa) => (
-                          <span
-                            key={etapa.id}
-                            title={`Etapa ${etapa.orden}: ${etapa.evaluador.nombre}`}
-                            className={`w-6 h-6 rounded-full text-xs flex items-center justify-center font-medium ${
-                              etapa.estado === "COMPLETADA" ? "bg-green-100 text-green-700" :
-                              etapa.estado === "ACTIVA" ? "bg-yellow-100 text-yellow-700" :
-                              "bg-gray-100 text-gray-400"
-                            }`}
-                          >
-                            {etapa.orden}
-                          </span>
-                        ))}
-                      </div>
-                      {etapaActiva && (
-                        <p className="text-xs text-gray-400 mt-1">En etapa {etapaActiva.orden} — {etapaActiva.evaluador.nombre}</p>
+                      <p className="font-medium text-gray-900">{proceso.nombre}</p>
+                      {proceso.descripcion && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{proceso.descripcion}</p>
                       )}
                     </td>
+                    <td className="px-6 py-4 text-gray-600">{proceso.tipoProceso.nombre}</td>
+                    <td className="px-6 py-4 text-gray-700 font-medium">{proceso._count.postulaciones}</td>
+                    <td className="px-6 py-4 text-gray-700 font-medium">{proceso._count.candidatos}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${config.clase}`}>
-                        {config.label}
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${conf.clase}`}>
+                        {conf.label}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-500">{formatDate(proceso.creadoEn)}</td>

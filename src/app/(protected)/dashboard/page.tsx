@@ -8,39 +8,51 @@ export default async function DashboardPage() {
   const esAdmin = session?.user?.rol === "ADMIN"
 
   if (esAdmin) {
-    const [totalCandidatos, enProgreso, completados, terminados, etapasPendientes] = await Promise.all([
-      prisma.candidato.count(),
-      prisma.procesoEvaluacion.count({ where: { estado: "EN_PROGRESO" } }),
-      prisma.procesoEvaluacion.count({ where: { estado: "COMPLETADO" } }),
-      prisma.procesoEvaluacion.count({ where: { estado: "TERMINADO" } }),
+    const [totalPostulaciones, totalCandidatos, procesosAbiertos, etapasPendientes] = await Promise.all([
+      prisma.postulacion.count(),
+      prisma.candidatoEnProceso.count({ where: { estado: { not: "DESCARTADO" } } }),
+      prisma.proceso.count({ where: { estado: "ABIERTO" } }),
       prisma.etapaEvaluacion.findMany({
         where: { estado: "ACTIVA" },
         include: {
           evaluador: { select: { nombre: true } },
-          proceso: { include: { candidato: { select: { nombre: true, cargo: true } } } },
+          candidatoEnProceso: {
+            include: {
+              postulacion: { select: { nombre: true, apellido1: true, carrera: true } },
+              proceso: { select: { id: true, nombre: true } },
+            },
+          },
         },
-        orderBy: { proceso: { actualizadoEn: "desc" } },
+        orderBy: { orden: "asc" },
         take: 10,
       }),
     ])
 
-    const candidatosRecientes = await prisma.candidato.findMany({
+    const procesosRecientes = await prisma.proceso.findMany({
       orderBy: { creadoEn: "desc" },
       take: 5,
-      include: { _count: { select: { procesos: true } } },
+      include: {
+        tipoProceso: { select: { nombre: true } },
+        _count: { select: { postulaciones: true, candidatos: true } },
+      },
     })
+
+    const estadoConfig: Record<string, { label: string; clase: string }> = {
+      BORRADOR: { label: "Borrador", clase: "bg-gray-100 text-gray-600" },
+      ABIERTO: { label: "Abierto", clase: "bg-blue-100 text-blue-700" },
+      EN_PROGRESO: { label: "En Progreso", clase: "bg-yellow-100 text-yellow-700" },
+      CERRADO: { label: "Cerrado", clase: "bg-green-100 text-green-700" },
+    }
 
     return (
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
           {[
-            { label: "Candidatos", value: totalCandidatos, color: "#1e3a5f", href: "/candidatos" },
-            { label: "En Progreso", value: enProgreso, color: "#2563eb", href: "/procesos?estado=EN_PROGRESO" },
-            { label: "Completados", value: completados, color: "#16a34a", href: "/procesos?estado=COMPLETADO" },
-            { label: "Terminados", value: terminados, color: "#dc2626", href: "/procesos?estado=TERMINADO" },
+            { label: "Postulaciones", value: totalPostulaciones, color: "#1e3a5f", href: "/procesos" },
+            { label: "Candidatos Activos", value: totalCandidatos, color: "#2563eb", href: "/procesos" },
+            { label: "Procesos Abiertos", value: procesosAbiertos, color: "#16a34a", href: "/procesos?estado=ABIERTO" },
           ].map((stat) => (
             <Link key={stat.label} href={stat.href} className="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow border border-gray-100">
               <span className="text-3xl font-bold" style={{ color: stat.color }}>{stat.value}</span>
@@ -50,55 +62,59 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Evaluaciones activas */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Evaluaciones Activas</h2>
             {etapasPendientes.length === 0 ? (
               <p className="text-gray-400 text-sm">No hay evaluaciones activas.</p>
             ) : (
               <div className="space-y-3">
-                {etapasPendientes.map((etapa) => (
-                  <div key={etapa.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm text-gray-800">{etapa.proceso.candidato.nombre}</p>
-                      <p className="text-xs text-gray-500">{etapa.proceso.candidato.cargo || "Sin cargo"} · Etapa {etapa.orden}</p>
-                      <p className="text-xs text-blue-600 mt-0.5">Evaluador: {etapa.evaluador.nombre}</p>
+                {etapasPendientes.map((etapa) => {
+                  const p = etapa.candidatoEnProceso.postulacion
+                  return (
+                    <div key={etapa.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm text-gray-800">{p.nombre} {p.apellido1}</p>
+                        <p className="text-xs text-gray-500">{p.carrera} · Etapa {etapa.orden}</p>
+                        <p className="text-xs text-blue-600 mt-0.5">Evaluador: {etapa.evaluador.nombre}</p>
+                      </div>
+                      <Link href={`/evaluaciones/${etapa.id}`} className="text-xs px-3 py-1 rounded-full font-medium text-white" style={{ background: "#1e3a5f" }}>
+                        Ver
+                      </Link>
                     </div>
-                    <Link href={`/evaluaciones/${etapa.id}`} className="text-xs px-3 py-1 rounded-full font-medium text-white" style={{ background: "#1e3a5f" }}>
-                      Ver
-                    </Link>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
 
-          {/* Candidatos recientes */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Candidatos Recientes</h2>
-              <Link href="/candidatos" className="text-xs font-medium" style={{ color: "#1e3a5f" }}>Ver todos →</Link>
+              <h2 className="text-lg font-semibold text-gray-800">Procesos Recientes</h2>
+              <Link href="/procesos" className="text-xs font-medium" style={{ color: "#1e3a5f" }}>Ver todos →</Link>
             </div>
-            {candidatosRecientes.length === 0 ? (
-              <p className="text-gray-400 text-sm">No hay candidatos aún.</p>
+            {procesosRecientes.length === 0 ? (
+              <p className="text-gray-400 text-sm">No hay procesos aún.</p>
             ) : (
               <div className="space-y-3">
-                {candidatosRecientes.map((c) => (
-                  <Link key={c.id} href={`/candidatos/${c.id}`} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div>
-                      <p className="font-medium text-sm text-gray-800">{c.nombre}</p>
-                      <p className="text-xs text-gray-500">{c.cargo || "Sin cargo"} · {formatDate(c.creadoEn)}</p>
-                    </div>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{c._count.procesos} proceso{c._count.procesos !== 1 ? "s" : ""}</span>
-                  </Link>
-                ))}
+                {procesosRecientes.map((p) => {
+                  const conf = estadoConfig[p.estado]
+                  return (
+                    <Link key={p.id} href={`/procesos/${p.id}`} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                      <div>
+                        <p className="font-medium text-sm text-gray-800">{p.nombre}</p>
+                        <p className="text-xs text-gray-500">{p.tipoProceso.nombre} · {formatDate(p.creadoEn)}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${conf.clase}`}>{conf.label}</span>
+                        <p className="text-xs text-gray-400 mt-1">{p._count.postulaciones} postul.</p>
+                      </div>
+                    </Link>
+                  )
+                })}
               </div>
             )}
-            <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-              <Link href="/candidatos/nuevo" className="flex-1 text-center text-sm py-2 rounded-lg font-medium text-white" style={{ background: "#c9a84c" }}>
-                + Nuevo Candidato
-              </Link>
-              <Link href="/procesos/nuevo" className="flex-1 text-center text-sm py-2 rounded-lg font-medium text-white" style={{ background: "#1e3a5f" }}>
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <Link href="/procesos/nuevo" className="block text-center text-sm py-2 rounded-lg font-medium text-white" style={{ background: "#1e3a5f" }}>
                 + Nuevo Proceso
               </Link>
             </div>
@@ -112,12 +128,15 @@ export default async function DashboardPage() {
   const misEtapas = await prisma.etapaEvaluacion.findMany({
     where: { evaluadorId: session!.user.id, estado: { in: ["ACTIVA", "COMPLETADA"] } },
     include: {
-      proceso: {
-        include: { candidato: { select: { nombre: true, cargo: true } } },
+      candidatoEnProceso: {
+        include: {
+          postulacion: { select: { nombre: true, apellido1: true, carrera: true } },
+          proceso: { select: { id: true, nombre: true } },
+        },
       },
       competencias: { include: { competencia: true } },
     },
-    orderBy: { proceso: { actualizadoEn: "desc" } },
+    orderBy: { orden: "asc" },
   })
 
   const activas = misEtapas.filter((e) => e.estado === "ACTIVA")
@@ -132,27 +151,30 @@ export default async function DashboardPage() {
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Evaluaciones Pendientes</h2>
           <div className="space-y-3">
-            {activas.map((etapa) => (
-              <div key={etapa.id} className="bg-white border border-yellow-200 rounded-xl p-5 shadow-sm">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{etapa.proceso.candidato.nombre}</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">{etapa.proceso.candidato.cargo || "Sin cargo especificado"}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Etapa {etapa.orden} · {etapa.competencias.length} competencia{etapa.competencias.length !== 1 ? "s" : ""} a evaluar
-                    </p>
+            {activas.map((etapa) => {
+              const post = etapa.candidatoEnProceso.postulacion
+              return (
+                <div key={etapa.id} className="bg-white border border-yellow-200 rounded-xl p-5 shadow-sm">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{post.nombre} {post.apellido1}</h3>
+                      <p className="text-sm text-gray-500 mt-0.5">{post.carrera}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {etapa.candidatoEnProceso.proceso.nombre} · Etapa {etapa.orden} · {etapa.competencias.length} competencia{etapa.competencias.length !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <span className="text-xs px-3 py-1 rounded-full font-medium bg-yellow-100 text-yellow-800">Pendiente</span>
                   </div>
-                  <span className="text-xs px-3 py-1 rounded-full font-medium bg-yellow-100 text-yellow-800">Pendiente</span>
+                  <Link
+                    href={`/evaluaciones/${etapa.id}`}
+                    className="mt-4 inline-block w-full text-center py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
+                    style={{ background: "#1e3a5f" }}
+                  >
+                    Ir a Evaluar
+                  </Link>
                 </div>
-                <Link
-                  href={`/evaluaciones/${etapa.id}`}
-                  className="mt-4 inline-block w-full text-center py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
-                  style={{ background: "#1e3a5f" }}
-                >
-                  Ir a Evaluar
-                </Link>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -161,19 +183,22 @@ export default async function DashboardPage() {
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Evaluaciones Completadas</h2>
           <div className="space-y-3">
-            {completadas.map((etapa) => (
-              <div key={etapa.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm opacity-75">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-800">{etapa.proceso.candidato.nombre}</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">{etapa.proceso.candidato.cargo || "Sin cargo"}</p>
+            {completadas.map((etapa) => {
+              const post = etapa.candidatoEnProceso.postulacion
+              return (
+                <div key={etapa.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm opacity-75">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{post.nombre} {post.apellido1}</h3>
+                      <p className="text-sm text-gray-500 mt-0.5">{post.carrera}</p>
+                    </div>
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${etapa.decision === "AVANZA" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {etapa.decision === "AVANZA" ? "Avanzó" : "Terminado"}
+                    </span>
                   </div>
-                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${etapa.decision === "AVANZA" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {etapa.decision === "AVANZA" ? "Avanzó" : "Terminado"}
-                  </span>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

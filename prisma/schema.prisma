@@ -1,5 +1,3 @@
-// Sistema de Evaluación de Candidatos — Montblanc Consulting
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -16,9 +14,23 @@ enum Rol {
 }
 
 enum EstadoProceso {
+  BORRADOR
+  ABIERTO
   EN_PROGRESO
+  CERRADO
+}
+
+enum EstadoPostulacion {
+  PENDIENTE
+  SELECCIONADO
+  DESCARTADO
+}
+
+enum EstadoCandidato {
+  EN_PRUEBA
+  EN_ENTREVISTAS
   COMPLETADO
-  TERMINADO
+  DESCARTADO
 }
 
 enum EstadoEtapa {
@@ -43,54 +55,92 @@ model Usuario {
   etapas EtapaEvaluacion[]
 }
 
-model Candidato {
-  id        String    @id @default(cuid())
-  nombre    String
-  email     String
-  telefono  String?
-  cargo     String?
-  linkedin  String?
-  notas     String?
-  creadoEn  DateTime  @default(now())
-
-  archivos Archivo[]
-  procesos ProcesoEvaluacion[]
-}
-
-model Archivo {
-  id          String    @id @default(cuid())
-  candidatoId String
-  candidato   Candidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+model TipoProceso {
+  id          String  @id @default(cuid())
   nombre      String
-  ruta        String
-  tipo        String
-  tamano      Int
-  subidoEn    DateTime  @default(now())
+  descripcion String?
+  activo      Boolean @default(true)
+  creadoEn    DateTime @default(now())
+
+  procesos      Proceso[]
+  postulaciones Postulacion[]
 }
 
-model ProcesoEvaluacion {
+model Proceso {
   id            String        @id @default(cuid())
-  candidatoId   String
-  candidato     Candidato     @relation(fields: [candidatoId], references: [id])
-  titulo        String
-  estado        EstadoProceso @default(EN_PROGRESO)
+  nombre        String
+  tipoProcesoId String
+  tipoProceso   TipoProceso   @relation(fields: [tipoProcesoId], references: [id])
+  estado        EstadoProceso @default(BORRADOR)
+  descripcion   String?
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
   creadoEn      DateTime      @default(now())
   actualizadoEn DateTime      @updatedAt
 
-  etapas EtapaEvaluacion[]
+  postulaciones Postulacion[]
+  candidatos    CandidatoEnProceso[]
+}
+
+model Postulacion {
+  id            String            @id @default(cuid())
+  procesoId     String
+  proceso       Proceso           @relation(fields: [procesoId], references: [id])
+  tipoProcesoId String
+  tipoProceso   TipoProceso       @relation(fields: [tipoProcesoId], references: [id])
+  nombre        String
+  apellido1     String
+  apellido2     String?
+  rut           String
+  email         String
+  universidad   String
+  carrera       String
+  rankingNotas  String?
+  respuesta1    String
+  respuesta2    String
+  cvNombre      String?
+  cvRuta        String?
+  estado        EstadoPostulacion @default(PENDIENTE)
+  creadoEn      DateTime          @default(now())
+
+  candidatoEnProceso CandidatoEnProceso?
+}
+
+model CandidatoEnProceso {
+  id            String          @id @default(cuid())
+  procesoId     String
+  proceso       Proceso         @relation(fields: [procesoId], references: [id])
+  postulacionId String          @unique
+  postulacion   Postulacion     @relation(fields: [postulacionId], references: [id])
+  estado        EstadoCandidato @default(EN_PRUEBA)
+  notas         String?
+  creadoEn      DateTime        @default(now())
+
+  prueba   PruebaOnline?
+  etapas   EtapaEvaluacion[]
+}
+
+model PruebaOnline {
+  id                   String             @id @default(cuid())
+  candidatoEnProcesoId String             @unique
+  candidatoEnProceso   CandidatoEnProceso @relation(fields: [candidatoEnProcesoId], references: [id], onDelete: Cascade)
+  fechaHora            DateTime?
+  puntaje              Float?
+  observaciones        String?
+  completada           Boolean            @default(false)
 }
 
 model EtapaEvaluacion {
-  id                String      @id @default(cuid())
-  procesoId         String
-  proceso           ProcesoEvaluacion @relation(fields: [procesoId], references: [id], onDelete: Cascade)
-  evaluadorId       String
-  evaluador         Usuario     @relation(fields: [evaluadorId], references: [id])
-  orden             Int
-  estado            EstadoEtapa @default(PENDIENTE)
-  decision          Decision?
-  comentarioGeneral String?
-  completadoEn      DateTime?
+  id                   String             @id @default(cuid())
+  candidatoEnProcesoId String
+  candidatoEnProceso   CandidatoEnProceso @relation(fields: [candidatoEnProcesoId], references: [id], onDelete: Cascade)
+  evaluadorId          String
+  evaluador            Usuario            @relation(fields: [evaluadorId], references: [id])
+  orden                Int
+  estado               EstadoEtapa        @default(PENDIENTE)
+  decision             Decision?
+  comentarioGeneral    String?
+  completadoEn         DateTime?
 
   competencias EtapaCompetencia[]
 }

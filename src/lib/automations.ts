@@ -16,22 +16,24 @@ export async function activarEtapa(etapaId: string): Promise<void> {
     data: { estado: "ACTIVA" },
     include: {
       evaluador: true,
-      proceso: {
+      candidatoEnProceso: {
         include: {
-          candidato: true,
+          postulacion: true,
         },
       },
     },
   })
 
+  const postulacion = etapa.candidatoEnProceso.postulacion
+  const candidatoNombre = `${postulacion.nombre} ${postulacion.apellido1}`
   const etapaUrl = `${BASE_URL}/evaluaciones/${etapaId}`
 
   await sendEmail(
     etapa.evaluador.email,
-    `Nueva evaluación asignada: ${etapa.proceso.candidato.nombre}`,
+    `Nueva evaluación asignada: ${candidatoNombre}`,
     templateEtapaActivada(
       etapa.evaluador.nombre,
-      etapa.proceso.candidato.nombre,
+      candidatoNombre,
       etapaUrl
     )
   )
@@ -45,9 +47,9 @@ export async function procesarDecision(
     where: { id: etapaId },
     include: {
       evaluador: true,
-      proceso: {
+      candidatoEnProceso: {
         include: {
-          candidato: true,
+          postulacion: true,
           etapas: {
             orderBy: { orden: "asc" },
             include: {
@@ -63,13 +65,14 @@ export async function procesarDecision(
     throw new Error("Etapa no encontrada")
   }
 
-  const proceso = etapa.proceso
-  const candidato = proceso.candidato
-  const todasEtapas = proceso.etapas
+  const candidatoEnProceso = etapa.candidatoEnProceso
+  const postulacion = candidatoEnProceso.postulacion
+  const candidatoNombre = `${postulacion.nombre} ${postulacion.apellido1}`
+  const todasEtapas = candidatoEnProceso.etapas
   const etapaActual = todasEtapas.find((e) => e.id === etapaId)
 
   if (!etapaActual) {
-    throw new Error("Etapa actual no encontrada en el proceso")
+    throw new Error("Etapa actual no encontrada en el candidato")
   }
 
   if (decision === "AVANZA") {
@@ -87,38 +90,36 @@ export async function procesarDecision(
 
       await sendEmail(
         siguienteEtapa.evaluador.email,
-        `Candidato avanza: ${candidato.nombre}`,
+        `Candidato avanza: ${candidatoNombre}`,
         templateCandidatoAvanza(
           siguienteEtapa.evaluador.nombre,
-          candidato.nombre,
+          candidatoNombre,
           etapaUrl
         )
       )
     } else {
-      await prisma.procesoEvaluacion.update({
-        where: { id: proceso.id },
+      // Última etapa completada → candidato COMPLETADO
+      await prisma.candidatoEnProceso.update({
+        where: { id: candidatoEnProceso.id },
         data: { estado: "COMPLETADO" },
       })
 
-      const cargo = candidato.cargo || "sin especificar"
       await sendEmail(
-        candidato.email,
+        postulacion.email,
         "¡Felicitaciones! Ha completado el proceso de evaluación",
-        templateProcesoCompletado(candidato.nombre, cargo)
+        templateProcesoCompletado(candidatoNombre, postulacion.carrera)
       )
     }
   } else if (decision === "TERMINA") {
-    await prisma.procesoEvaluacion.update({
-      where: { id: proceso.id },
-      data: { estado: "TERMINADO" },
+    await prisma.candidatoEnProceso.update({
+      where: { id: candidatoEnProceso.id },
+      data: { estado: "DESCARTADO" },
     })
 
-    const cargo = candidato.cargo || "sin especificar"
-
     await sendEmail(
-      candidato.email,
+      postulacion.email,
       "Resultado de su proceso de evaluación",
-      templateProcesoTerminado(candidato.nombre, cargo)
+      templateProcesoTerminado(candidatoNombre, postulacion.carrera)
     )
 
     const adminUsuarios = await prisma.usuario.findMany({
@@ -128,8 +129,8 @@ export async function procesarDecision(
     for (const admin of adminUsuarios) {
       await sendEmail(
         admin.email,
-        `Proceso terminado: ${candidato.nombre}`,
-        templateAdminRechazo(candidato.nombre, etapa.evaluador.nombre)
+        `Proceso terminado: ${candidatoNombre}`,
+        templateAdminRechazo(candidatoNombre, etapa.evaluador.nombre)
       )
     }
   }

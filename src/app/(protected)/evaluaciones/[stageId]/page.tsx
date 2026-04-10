@@ -30,9 +30,9 @@ interface EtapaData {
   competencias: EtapaCompetencia[]
   comentarioGeneral: string | null
   decision: string | null
-  proceso: {
-    titulo: string
-    candidato: { nombre: string; cargo: string | null; email: string }
+  candidatoEnProceso: {
+    proceso: { id: string; nombre: string }
+    postulacion: { nombre: string; apellido1: string; carrera: string; email: string }
     etapas: EtapaAnterior[]
   }
 }
@@ -118,7 +118,8 @@ export default function EvaluacionPage() {
   if (!etapa) return null
 
   const esActiva = etapa.estado === "ACTIVA"
-  const etapasAnteriores = etapa.proceso.etapas.filter((e) => e.orden < etapa.orden)
+  const post = etapa.candidatoEnProceso.postulacion
+  const etapasAnteriores = etapa.candidatoEnProceso.etapas.filter((e) => e.orden < etapa.orden)
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -126,9 +127,9 @@ export default function EvaluacionPage() {
       <div className="mb-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{etapa.proceso.candidato.nombre}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{post.nombre} {post.apellido1}</h1>
             <p className="text-gray-500 mt-1">
-              {etapa.proceso.candidato.cargo || "Sin cargo"} · {etapa.proceso.titulo}
+              {post.carrera} · {etapa.candidatoEnProceso.proceso.nombre}
             </p>
             <p className="text-sm text-gray-400 mt-0.5">
               Etapa {etapa.orden} — Evaluador: {etapa.evaluador.nombre}
@@ -259,8 +260,8 @@ export default function EvaluacionPage() {
             </h3>
             <p className="text-sm text-gray-500 mb-6">
               {confirmacion === "AVANZA"
-                ? `El candidato ${etapa.proceso.candidato.nombre} avanzará a la siguiente etapa del proceso.`
-                : `El proceso de evaluación de ${etapa.proceso.candidato.nombre} se cerrará como terminado. Se notificará al candidato.`}
+                ? `${post.nombre} ${post.apellido1} avanzará a la siguiente etapa del proceso.`
+                : `El proceso de evaluación de ${post.nombre} ${post.apellido1} se cerrará como terminado. Se notificará al candidato.`}
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmacion(null)}

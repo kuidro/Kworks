@@ -12,7 +12,9 @@ export async function proxy(req: NextRequest) {
   const isPublicPath =
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/postular" ||
+    pathname.startsWith("/api/postular")
 
   if (isPublicPath) return NextResponse.next()
 

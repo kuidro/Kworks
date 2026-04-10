@@ -36,9 +36,26 @@ export async function GET(
           competencia: true,
         },
       },
-      proceso: {
+      candidatoEnProceso: {
         include: {
-          candidato: true,
+          proceso: {
+            select: { id: true, nombre: true, tipoProceso: { select: { nombre: true } } },
+          },
+          postulacion: {
+            select: {
+              nombre: true,
+              apellido1: true,
+              apellido2: true,
+              rut: true,
+              email: true,
+              universidad: true,
+              carrera: true,
+              cvRuta: true,
+              cvNombre: true,
+              respuesta1: true,
+              respuesta2: true,
+            },
+          },
           etapas: {
             where: { estado: "COMPLETADA" },
             orderBy: { orden: "asc" },

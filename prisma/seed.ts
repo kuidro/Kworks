@@ -62,6 +62,20 @@ async function main() {
   }
   console.log("✅ Competencias creadas:", competenciasData.length)
 
+  // Tipos de proceso
+  const tiposData = [
+    { nombre: "Analista Junior", descripcion: "Procesos para incorporación de profesionales en etapa inicial de carrera" },
+    { nombre: "Analista Senior", descripcion: "Procesos para profesionales con experiencia en el área" },
+    { nombre: "Gerencia", descripcion: "Procesos para cargos directivos y de alta responsabilidad" },
+    { nombre: "Consultor", descripcion: "Procesos para consultores externos e internos" },
+  ]
+
+  for (const tipo of tiposData) {
+    const existe = await prisma.tipoProceso.findFirst({ where: { nombre: tipo.nombre } })
+    if (!existe) await prisma.tipoProceso.create({ data: tipo })
+  }
+  console.log("✅ Tipos de proceso creados:", tiposData.length)
+
   console.log("\n🎉 Seed completado exitosamente!")
   console.log("\n📋 Credenciales de acceso:")
   console.log("   Admin:     admin@montblancchile.com / admin123")
