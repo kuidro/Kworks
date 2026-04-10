@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { sendEmail, templateConfirmacionPostulacion } from "@/lib/email"
 import { writeFile, mkdir } from "fs/promises"
 import path from "path"
 
@@ -80,6 +81,17 @@ export async function POST(req: NextRequest) {
         data: { cvNombre, cvRuta },
       })
     }
+
+    // Enviar email de confirmación (no bloquea la respuesta si falla)
+    void sendEmail(
+      postulacion.email,
+      "Confirmación de postulación — Montblanc Consulting",
+      templateConfirmacionPostulacion(
+        `${postulacion.nombre} ${postulacion.apellido1}`,
+        proceso.nombre,
+        postulacion.carrera
+      )
+    )
 
     return NextResponse.json({ mensaje: "Postulación recibida correctamente", id: postulacion.id }, { status: 201 })
   } catch (error) {

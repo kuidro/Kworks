@@ -198,6 +198,56 @@ export function templateProcesoCompletado(candidatoNombre: string, cargo: string
   `
 }
 
+export function templateConfirmacionPostulacion(
+  candidatoNombre: string,
+  procesoNombre: string,
+  carrera: string
+): string {
+  return `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background-color: #1e3a5f; color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 5px 0 0; color: #c9a84c; font-size: 14px; }
+        .body { padding: 30px; }
+        .body h2 { color: #1e3a5f; margin-top: 0; }
+        .resumen { background-color: #f0f4f8; border-left: 4px solid #1e3a5f; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
+        .resumen p { margin: 4px 0; font-size: 14px; }
+        .footer { background-color: #f8f8f8; padding: 20px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Montblanc Consulting</h1>
+          <p>Sistema de Selección de Candidatos</p>
+        </div>
+        <div class="body">
+          <h2>Postulación Recibida</h2>
+          <p>Estimado/a <strong>${candidatoNombre}</strong>,</p>
+          <p>Hemos recibido correctamente tu postulación. A continuación encontrarás un resumen de los datos registrados:</p>
+          <div class="resumen">
+            <p><strong>Proceso:</strong> ${procesoNombre}</p>
+            <p><strong>Carrera:</strong> ${carrera}</p>
+          </div>
+          <p>Nuestro equipo revisará tu postulación y te contactaremos a este correo si avanzas en el proceso. El plazo de respuesta puede variar según el volumen de postulaciones.</p>
+          <p>Gracias por tu interés en formar parte de Montblanc Consulting.</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} Montblanc Consulting. Todos los derechos reservados.</p>
+          <p>Este mensaje fue generado automáticamente, por favor no responder.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
 export function templateAdminRechazo(candidatoNombre: string, evaluadorNombre: string): string {
   return `
     <!DOCTYPE html>
